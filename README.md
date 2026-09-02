@@ -1,24 +1,25 @@
 # ESP32 BLE Volume Knob
 
-Drehregler auf **ESP32-C3-Super-Mini**-Basis, der sich per Bluetooth LE als
-HID-Media-Tastatur („VolKnob") beim Android-Handy anmeldet und die
-Medienlautstärke steuert.
+A rotary knob based on the **ESP32-C3 Super Mini** that registers with an
+Android phone over Bluetooth LE as an HID media keyboard ("VolKnob") and
+controls the media volume.
 
-- **Drehen im Uhrzeigersinn** → `KEY_MEDIA_VOLUME_UP`
-- **Drehen gegen den Uhrzeigersinn** → `KEY_MEDIA_VOLUME_DOWN`
-- **Taster drücken** → `KEY_MEDIA_MUTE`
+- **Turn clockwise** → `KEY_MEDIA_VOLUME_UP`
+- **Turn counter-clockwise** → `KEY_MEDIA_VOLUME_DOWN`
+- **Press the button** → `KEY_MEDIA_MUTE`
 
-Keine App auf dem Handy nötig — Android verarbeitet die
-HID-Consumer-Control-Codes nativ. Versorgung über USB-C am ESP32-C3.
+No app is required on the phone; Android handles the HID consumer control
+codes natively. The ESP32-C3 is powered over USB-C.
 
-## Voraussetzungen
+## Requirements
 
-- ESP32-C3 Super Mini (oder anderes C3-Board mit nativem USB-Serial/JTAG)
-- Drehencoder **KY-040** mit Taster (4 Quadratur-Schritte pro Raste)
-- 5 Adern; optional 3× 10 nF für Hardware-Entprellung, 1× 100 nF Abblock
-- [PlatformIO](https://platformio.org/) zum Bauen
+- ESP32-C3 Super Mini (or any other C3 board with native USB Serial/JTAG)
+- **KY-040** rotary encoder with push-button (4 quadrature steps per detent)
+- 5 wires; optionally 3× 10 nF for hardware debouncing and 1× 100 nF for
+  supply decoupling
+- [PlatformIO](https://platformio.org/) to build
 
-## Verdrahtung
+## Wiring
 
 | KY-040 | ESP32-C3 |
 | --- | --- |
@@ -28,101 +29,97 @@ HID-Consumer-Control-Codes nativ. Versorgung über USB-C am ESP32-C3.
 | + | **3V3** |
 | GND | GND |
 
-**Warum CLK auf GPIO1 und nicht auf GPIO2.** Die KY-040-Stiftleiste
-`CLK·DT·SW·+·GND` passt geometrisch genau auf Pad 2–6 der rechten Leiste
-(GND, 3V3, GPIO4, GPIO3, GPIO2) — die einzige Stelle, an der GND und 3V3
-benachbart liegen, also die einzige direkt lötbare Ausrichtung. CLK läge dann
-aber auf GPIO2, und das ist ein Strapping-Pin: steht der Knopf beim Einstecken
-zwischen zwei Rasten, zieht der CLK-Kontakt GPIO2 auf Masse und das Board
-bootet nicht. Kein Widerstand löst das — was GPIO2 beim Boot oben hält, macht
-das Signal im Betrieb unlesbar. Deshalb geht CLK per Draht auf GPIO1 (Pad 7),
-GPIO2 bleibt frei.
+**Why CLK goes to GPIO1 and not GPIO2.** The KY-040 header `CLK·DT·SW·+·GND`
+lines up exactly with pads 2–6 of the right rail (GND, 3V3, GPIO4, GPIO3,
+GPIO2), the only position where GND and 3V3 are adjacent and therefore the
+only orientation that can be soldered on directly. That places CLK on GPIO2,
+which is a strapping pin: if the knob rests between two detents at power-up,
+the CLK contact pulls GPIO2 low and the board does not boot. A pull-up strong
+enough to hold GPIO2 high at boot also makes the encoder signal unreadable in
+normal operation, so CLK is wired to GPIO1 (pad 7) instead and GPIO2 is left
+unused.
 
-Ebenfalls frei lassen: `GPIO9` (BOOT) und `GPIO8` (LED).
+Also leave `GPIO9` (BOOT) and `GPIO8` (LED) unused.
 
-**Speisung mit 3,3 V, nicht 5 V.** Die 10-kΩ-Pullups des KY-040 hängen am
-`+`-Pin des Moduls; mit 5 V lägen 5 V auf den C3-GPIOs. Der 5V-Pin bleibt frei.
-Die Firmware setzt trotzdem `INPUT_PULLUP` — nicht jede KY-040-Variante hat
-einen Modul-Pullup auf `SW`.
+**Supply from 3.3 V, not 5 V.** The 10 kΩ pull-ups of the KY-040 are tied to
+the module's `+` pin, so a 5 V supply would put 5 V on the C3 GPIOs. Leave the
+5V pin unconnected. The firmware still configures `INPUT_PULLUP` because not
+every KY-040 variant has a module pull-up on `SW`.
 
-**Antenne freihalten:** Die Antenne des Super Mini sitzt am USB-C-Ende. Die
-Encoder-Platine nicht darüber legen, das kostet BLE-Reichweite.
+**Keep the antenna clear.** The antenna of the Super Mini sits at the end
+opposite the USB-C connector. Do not place the encoder board over it; doing so
+reduces BLE range.
 
-### Schaltplan
+### Schematic
 
-![Schaltplan](docs/schaltplan.png)
+![Schematic](docs/schaltplan.png)
 
-Gezeichnet ist auch das Innenleben der KY-040-Modulplatine: R1–R3 sind die
-Pullups **auf dem Modul**, sie hängen am `+`-Pin. Encoder-Kontakte und Taster
-schalten gegen den GND-Pin des Moduls — deshalb sind die Massezeichen
-innerhalb des gestrichelten Rahmens alle derselbe Anschluss.
+The drawing also shows the internals of the KY-040 module board: R1–R3 are the
+pull-ups **on the module**, tied to its `+` pin. The encoder contacts and the
+push-button switch against the module's GND pin, which is why every ground
+symbol inside the dashed frame is the same connection.
 
-C1–C3 (10 nF) sind Hardware-Entprellung und optional: erst ohne aufbauen, nur
-nachrüsten, wenn die Firmware Doppelsprünge zeigt. Mit dem 10-kΩ-Modul-Pullup
-ergibt sich τ ≈ 100 µs. C4 (100 nF) blockt die Modulversorgung ab.
+C1–C3 (10 nF) are optional hardware debouncing: build without them first and
+only add them if the firmware shows double steps. Together with the 10 kΩ
+module pull-up they give τ ≈ 100 µs. C4 (100 nF) decouples the module supply.
 
-Quelle der Zeichnung ist [`docs/schaltplan.py`](docs/schaltplan.py)
-([schemdraw](https://schemdraw.readthedocs.io/)), neu rendern mit:
-
-```bash
-python docs/schaltplan.py     # schreibt docs/schaltplan.svg + .png
-```
-
-In [`docs/steckbrett.png`](docs/steckbrett.png) liegt zusätzlich ein
-Steckbrett-Aufbauplan aus der Planungsphase. Er wurde so nicht gebaut und
-nutzt eine **abweichende Belegung** (CLK auf GPIO0, DT auf GPIO1, SW auf
-GPIO3); wer ihn verwendet, muss die `PIN_*`-Defines in `src/main.cpp`
-entsprechend ändern.
-
-## Bauen und flashen
+The drawing is generated from [`docs/schaltplan.py`](docs/schaltplan.py) using
+[schemdraw](https://schemdraw.readthedocs.io/):
 
 ```bash
-pio run              # bauen
-pio run -t upload    # flashen
+python docs/schaltplan.py     # writes docs/schaltplan.svg + .png
 ```
 
-Der C3 Super Mini meldet sich über USB-Serial-JTAG als serieller Port
-(VID `303A` / PID `1001`), ein BOOT-Taster wird nicht gebraucht. Der
-Uploadport steht in `platformio.ini` und muss ggf. angepasst werden.
+## Build and flash
 
-Verbrauch: rund 500 kB Flash von 3,1 MB (Partitionsschema `huge_app`) und
-knapp 24 kB RAM.
-
-Die BLE-HID-Anbindung kommt von
-[T-vK/ESP32-BLE-Keyboard](https://github.com/T-vK/ESP32-BLE-Keyboard) in der
-**NimBLE-Variante** (`-DUSE_NIMBLE`) — die Bluedroid-Version sprengt auf dem C3
-schnell den Flash.
-
-## Koppeln
-
-Android → Bluetooth → „VolKnob" auswählen → verbinden. Kein PIN.
-
-## Fehlersuche
-
-### Es passiert gar nichts, obwohl der Encoder mechanisch dreht
-
-Wahrscheinlich hat die **`+`-Ader (3V3) keinen Kontakt**. Das Fehlerbild sieht
-wie ein Firmware-Bug aus, ist aber Verdrahtung:
-
-- CLK und DT wechseln immer *gemeinsam*, im µs-Trace nur 1–2 µs auseinander —
-  mechanisch unmöglich.
-- Die Quadratur-Tabelle sieht dadurch den Sprung `11 → 00`, also Index 3 bzw.
-  12, beides `0`. Jeder Schritt wird verworfen, `encDelta` bleibt stehen, es
-  wird nie ein Click gesendet.
-- Dazu µs-Geprassel mit dutzenden Flanken pro Raste.
-
-Ursache: Die beiden 10-kΩ-Pullups des Moduls hängen am `+`-Knoten. Floatet der,
-verbinden sie CLK und DT über 10 k + 10 k = **20 kΩ miteinander**. Zieht ein
-Kontakt CLK auf Masse, hängt DT passiv mit dran und kämpft nur gegen den
-internen 45-kΩ-Pullup des C3:
-
-```
-U_DT = 3,3 V × 20k / (20k + 45k) ≈ 1,0 V   → unter der Logikschwelle → liest 0
+```bash
+pio run              # build
+pio run -t upload    # flash
 ```
 
-### Speisung am Modul prüfen, ohne Multimeter
+The C3 Super Mini enumerates as a serial port over USB Serial/JTAG
+(VID `303A` / PID `1001`); no BOOT button is needed. The upload port can be
+pinned down in `platformio.ini` if several boards are attached.
 
-Den Pin einmal mit internem Pullup und einmal mit internem Pulldown lesen:
+Footprint: roughly 500 kB of flash out of 3.1 MB (partition scheme `huge_app`)
+and just under 24 kB of RAM.
+
+The BLE HID layer comes from
+[T-vK/ESP32-BLE-Keyboard](https://github.com/T-vK/ESP32-BLE-Keyboard) in its
+**NimBLE flavour** (`-DUSE_NIMBLE`); the Bluedroid version quickly exceeds the
+available flash on the C3.
+
+## Pairing
+
+Android → Bluetooth → select "VolKnob" → connect. No PIN.
+
+## Troubleshooting
+
+### Nothing happens even though the encoder turns mechanically
+
+The most likely cause is that the **`+` wire (3V3) has no contact**. The
+symptoms look like a firmware bug but are a wiring fault:
+
+- CLK and DT always change *together*, only 1–2 µs apart in a microsecond
+  trace, which is mechanically impossible.
+- The quadrature table therefore sees the transition `11 → 00`, which is index
+  3 and index 12, both `0`. Every step is discarded, `encDelta` stops moving,
+  and no click is ever sent.
+- On top of that, dozens of microsecond-scale edges appear per detent.
+
+Reason: the two 10 kΩ pull-ups of the module are tied to the `+` node. If that
+node floats, they connect CLK and DT through 10 k + 10 k = **20 kΩ**. When a
+contact pulls CLK to ground, DT is dragged along through those 20 kΩ against
+the C3's internal 45 kΩ pull-up:
+
+```
+U_DT = 3.3 V × 20k / (20k + 45k) ≈ 1.0 V   → below the logic threshold → reads 0
+```
+
+### Checking the module supply without a multimeter
+
+Read the pin twice, once with the internal pull-up and once with the internal
+pull-down:
 
 ```cpp
 pinMode(pin, INPUT_PULLUP);   delayMicroseconds(500); int up   = digitalRead(pin);
@@ -130,47 +127,48 @@ pinMode(pin, INPUT_PULLDOWN); delayMicroseconds(500); int down = digitalRead(pin
 pinMode(pin, INPUT_PULLUP);
 ```
 
-| pullup | pulldown | Bedeutung |
+| pull-up | pull-down | meaning |
 | --- | --- | --- |
-| 1 | 1 | externer Pullup vorhanden — Modul hängt an 3V3 |
-| 1 | 0 | offen/floatend — **kein** externer Pullup |
-| 0 | 0 | fest auf GND — Kontakt geschlossen |
+| 1 | 1 | external pull-up present — module is connected to 3V3 |
+| 1 | 0 | floating — **no** external pull-up |
+| 0 | 0 | tied to ground — contact closed |
 
-Der interne Pulldown liegt bei rund 45 kΩ; gegen den 10-kΩ-Modul-Pullup
-gewinnt 3V3 klar. Damit lässt sich ohne Messgerät feststellen, ob die
-Versorgung am Modul wirklich ankommt.
+The internal pull-down is around 45 kΩ, so the 10 kΩ module pull-up wins
+clearly against it. This shows whether the supply actually reaches the module
+without needing a meter.
 
-### Mitlesen auf dem Android-Gerät
+### Observing the events on the Android device
 
 ```bash
-adb shell dumpsys bluetooth_manager | grep -A3 VolKnob   # Bond + Hogp-Profil
-adb shell getevent -p | grep -A6 VolKnob                 # HID-Device, z. B. /dev/input/event8
+adb shell dumpsys bluetooth_manager | grep -A3 VolKnob   # bond state and Hogp profile
+adb shell getevent -p | grep -A6 VolKnob                 # HID device, e.g. /dev/input/event8
 adb shell settings get system volume_music               # 0..15
-adb logcat -v time | grep "applyVolumeRow 3:"            # LEVEL/MUTED je Änderung
+adb logcat -v time | grep "applyVolumeRow 3:"            # LEVEL/MUTED per change
 ```
 
-`getevent -lt` über `adb shell` in eine Datei umzuleiten bringt nichts — die
-Ausgabe wird gepuffert und kommt nicht an. `logcat` und `settings get` sind der
-verlässliche Weg.
+Redirecting `getevent -lt` through `adb shell` into a file does not work; the
+output is buffered and never arrives. `logcat` and `settings get` are the
+reliable way.
 
-### Weitere Fallstricke
+### Other pitfalls
 
-- **Belegung des Moduls nachmessen:** Es gibt KY-040-Varianten mit
-  `GND·+·SW·DT·CLK` und anderen Reihenfolgen. Bei 3,3 V direkt am Modul
-  verzeiht ein Dreher nichts.
-- **Drehrichtung invertiert:** `PIN_CLK` und `PIN_DT` im Code tauschen.
-- **Doppelsprünge pro Klick:** `DETENT_STEPS` auf 2 oder 1 setzen, je nach
-  Rastung des konkreten Encoders.
-- **Mute wirkt nicht:** Manche Android-Versionen ignorieren `KEY_MEDIA_MUTE`
-  für den Media-Stream. Fallback: Lautstärke im ESP32 mitzählen, beim ersten
-  Druck auf 0 fahren, beim zweiten wieder hoch. Auf einem Galaxy A16 (Android,
-  SM-A165F) funktioniert `KEY_MEDIA_MUTE` direkt.
-- **Reconnect nach Handy-Sperre** dauert einige Sekunden — normal für BLE.
-- Drehen, während das Handy die Verbindung noch aufbaut, geht ins Leere; es
-  gibt keinen Wakelock.
+- **Verify the module pinout.** There are KY-040 variants with
+  `GND·+·SW·DT·CLK` and other orders. With 3.3 V wired straight to the module,
+  a swap is not forgiving.
+- **Direction inverted:** swap `PIN_CLK` and `PIN_DT` in the code.
+- **Double steps per detent:** set `DETENT_STEPS` to 2 or 1, depending on the
+  detent scheme of the specific encoder.
+- **Mute has no effect:** some Android versions ignore `KEY_MEDIA_MUTE` for the
+  media stream. Fallback: track the volume on the ESP32, ramp it to 0 on the
+  first press and back up on the second. On a Galaxy A16 (SM-A165F)
+  `KEY_MEDIA_MUTE` works directly.
+- **Reconnecting after the phone locks** takes a few seconds, which is normal
+  for BLE.
+- Turning while the phone is still establishing the connection has no effect;
+  there is no wakelock.
 
-## Getestet mit
+## Tested with
 
-ESP32-C3 Super Mini, KY-040, Samsung Galaxy A16 (SM-A165F):
-5 Rasten im Uhrzeigersinn heben die Medienlautstärke von 7 auf 12, 5 Rasten
-zurück wieder auf 7 — 1:1 pro Raste, ohne verschluckte Schritte.
+ESP32-C3 Super Mini, KY-040, Samsung Galaxy A16 (SM-A165F): 5 detents
+clockwise raise the media volume from 7 to 12, 5 detents back return it to 7,
+one step per detent with no dropped clicks.

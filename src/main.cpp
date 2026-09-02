@@ -1,9 +1,9 @@
 #include <Arduino.h>
 #include <BleKeyboard.h>
 
-#define PIN_CLK 1          // Drahtbrücke, Steckbrett-Prototyp: 0
-#define PIN_DT  3          // Steckbrett-Prototyp: 1
-#define PIN_SW  4          // Steckbrett-Prototyp: 3
+#define PIN_CLK 1
+#define PIN_DT  3
+#define PIN_SW  4
 
 #define DETENT_STEPS 4      // KY-040: 4 quadrature steps per click
 #define BTN_DEBOUNCE 50     // ms
@@ -31,9 +31,10 @@ void setup() {
   pinMode(PIN_DT,  INPUT_PULLUP);
   pinMode(PIN_SW,  INPUT_PULLUP);
 
-  // Startzustand aus den echten Pegeln uebernehmen. Ohne das startet encState
-  // auf 00, waehrend die Pins in Ruhe auf 11 liegen -- die erste Flanke faellt
-  // dann auf Tabellenindex 3 (= 0) und ein Quadraturschritt geht verloren.
+  // Seed the state machine from the actual pin levels. Starting encState at 00
+  // while the idle pins sit at 11 makes the first edge land on table index 3
+  // (= 0), which loses one quadrature step and swallows a click on every
+  // change of direction.
   encState = (digitalRead(PIN_CLK) << 1) | digitalRead(PIN_DT);
 
   attachInterrupt(PIN_CLK, encISR, CHANGE);

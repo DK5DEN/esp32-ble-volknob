@@ -1,44 +1,47 @@
 """
-Schaltplan ESP32 BLE Volume Knob — ESP32-C3 Super Mini <-> KY-040
-Erzeugt docs/schaltplan.svg + .png:  python docs/schaltplan.py
+Schematic for the ESP32 BLE Volume Knob - ESP32-C3 Super Mini <-> KY-040.
+Writes docs/schaltplan.svg and docs/schaltplan.png:  python docs/schaltplan.py
+
+Both files are saved with an opaque white background so they stay readable on
+hosts that render them against a dark page, such as GitHub in dark mode.
 """
 import schemdraw
 import schemdraw.elements as elm
 
 schemdraw.config(font='sans-serif', fontsize=11)
 
-# --- Raster -----------------------------------------------------------------
-X_ESP_L, X_ESP_R = -5.4, -1.6   # Gehaeuse des Boards
-X_LEAD = 0.4                    # Ende der Pin-Leitungen
-X_CAP = 1.8                     # optionale Kondensatoren
-X_NODE = 4.6                    # Signalknoten im Modul
-X_BUS = 9.8                     # +-Schiene des Moduls (senkrecht)
+# --- grid -------------------------------------------------------------------
+X_ESP_L, X_ESP_R = -5.4, -1.6   # board outline
+X_LEAD = 0.4                    # end of the pin leads
+X_CAP = 1.8                     # optional capacitors
+X_NODE = 4.6                    # signal node inside the module
+X_BUS = 9.8                     # module + rail (vertical)
 
-Y_VCC = 4.2                     # 3V3-Leitung
-Y_GND = -13.2                   # GND-Leitung
-Y_TOP, Y_BOT = 5.0, -13.9       # Gehaeusekanten
+Y_VCC = 4.2                     # 3V3 line
+Y_GND = -13.2                   # GND line
+Y_TOP, Y_BOT = 5.0, -13.9       # board outline edges
 
-# (Modulpin, GPIO, Kontakt, C-Bezeichner, R-Bezeichner, y)
+# (module pin, GPIO, contact, C designator, R designator, y)
 ROWS = [
-    ('CLK', 'GPIO1', 'Kanal A', 'C1', 'R1', 0.0),
-    ('DT',  'GPIO3', 'Kanal B', 'C2', 'R2', -4.4),
-    ('SW',  'GPIO4', 'Taster',  'C3', 'R3', -8.8),
+    ('CLK', 'GPIO1', 'Channel A',  'C1', 'R1', 0.0),
+    ('DT',  'GPIO3', 'Channel B',  'C2', 'R2', -4.4),
+    ('SW',  'GPIO4', 'Push-button', 'C3', 'R3', -8.8),
 ]
 
 with schemdraw.Drawing(show=False) as d:
     d.config(unit=2.0)
 
     # =====================================================================
-    # Titel
+    # Title
     # =====================================================================
     d += elm.Label().at((2.5, Y_TOP + 3.0)).label(
-        'ESP32 BLE Volume Knob — ESP32-C3 Super Mini ↔ KY-040', fontsize=15)
+        'ESP32 BLE Volume Knob - ESP32-C3 Super Mini ↔ KY-040', fontsize=15)
     d += elm.Label().at((2.5, Y_TOP + 2.2)).label(
-        'BLE-HID-Media-Tastatur · Drehen = Lautstärke, Drücken = Mute',
+        'BLE HID media keyboard · turn = volume, press = mute',
         fontsize=10, color='gray')
 
     # =====================================================================
-    # ESP32-C3 Super Mini als Gehaeuse mit Pin-Leitungen
+    # ESP32-C3 Super Mini outline with pin leads
     # =====================================================================
     for a, b in (((X_ESP_L, Y_TOP), (X_ESP_R, Y_TOP)),
                  ((X_ESP_R, Y_TOP), (X_ESP_R, Y_BOT)),
@@ -49,9 +52,12 @@ with schemdraw.Drawing(show=False) as d:
     d += elm.Label().at(((X_ESP_L + X_ESP_R) / 2, Y_TOP - 1.6)).label(
         'ESP32-C3\nSuper Mini', fontsize=12)
     d += elm.Label().at(((X_ESP_L + X_ESP_R) / 2, Y_TOP - 3.4)).label(
-        'CLK/DT/SW als\nINPUT_PULLUP', fontsize=8.5, color='gray')
-    d += elm.Label().at(((X_ESP_L + X_ESP_R) / 2, Y_BOT + 2.6)).label(
-        'frei lassen:\nGPIO2 (Strapping)\nGPIO8 (LED)\nGPIO9 (BOOT)',
+        'CLK/DT/SW set to\nINPUT_PULLUP', fontsize=8.5, color='gray')
+    d += elm.Label().at(((X_ESP_L + X_ESP_R) / 2, Y_BOT + 3.4)).label(
+        'leave unused:\nGPIO2 (strapping)\nGPIO8 (LED)\nGPIO9 (BOOT)',
+        fontsize=8.5, color='gray')
+    d += elm.Label().at(((X_ESP_L + X_ESP_R) / 2, Y_BOT + 1.4)).label(
+        'antenna sits at the end\nopposite the USB-C jack -\nkeep it clear',
         fontsize=8.5, color='gray')
 
     def pin(y, name):
@@ -59,16 +65,16 @@ with schemdraw.Drawing(show=False) as d:
         d.add(elm.Label().at((X_ESP_R - 0.25, y)).label(name, fontsize=10, halign='right'))
 
     pin(Y_VCC, '3V3')
-    for modpin, gpio, kontakt, cref, rref, y in ROWS:
+    for modpin, gpio, contact, cref, rref, y in ROWS:
         pin(y, gpio)
     pin(Y_GND, 'GND')
 
     # =====================================================================
-    # 3V3: Leitung nach rechts, Abblock-C, dann senkrechte +-Schiene
+    # 3V3: run to the right, decoupling cap, then the vertical + rail
     # =====================================================================
     d += elm.Line().at((X_LEAD, Y_VCC)).to((X_BUS, Y_VCC))
     d += elm.Label().at((X_BUS - 2.4, Y_VCC + 0.45)).label(
-        '3V3 — nicht 5V!', fontsize=9.5, color='#a33')
+        '3V3 - not 5V', fontsize=9.5, color='#a33')
 
     d += elm.Dot().at((X_CAP, Y_VCC))
     d += elm.Capacitor().down().at((X_CAP, Y_VCC)).length(1.5).label(
@@ -80,7 +86,7 @@ with schemdraw.Drawing(show=False) as d:
     d += elm.Label().at((X_BUS + 0.35, Y_VCC - 0.55)).label('+', fontsize=12, halign='left')
 
     # =====================================================================
-    # GND: Leitung zum Modul, dort Bezugsmasse
+    # GND: run to the module, reference ground there
     # =====================================================================
     d += elm.Line().at((X_LEAD, Y_GND)).to((X_NODE, Y_GND))
     gnd_mod = d.add(elm.Ground().at((X_NODE, Y_GND)))
@@ -88,12 +94,12 @@ with schemdraw.Drawing(show=False) as d:
         'GND', fontsize=10, halign='left')
 
     # =====================================================================
-    # Die drei Signalzweige
+    # The three signal branches
     # =====================================================================
     box = [bus_top, gnd_mod]
 
-    for modpin, gpio, kontakt, cref, rref, y in ROWS:
-        # optionaler Entprell-C auf der Leitung zum Modul
+    for modpin, gpio, contact, cref, rref, y in ROWS:
+        # optional debounce cap on the wire to the module
         d += elm.Line().at((X_LEAD, y)).to((X_CAP, y))
         cnode = d.add(elm.Dot().at((X_CAP, y)))
         d += elm.Capacitor().down().at((X_CAP, y)).length(1.5).label(
@@ -106,7 +112,7 @@ with schemdraw.Drawing(show=False) as d:
         d += elm.Label().at((X_NODE - 0.15, y + 0.4)).label(
             modpin, fontsize=10, halign='right')
 
-        # Modul-Pullup nach + (waagerecht zur Schiene)
+        # module pull-up to + (horizontal, into the rail)
         r = elm.Resistor().right().at((X_NODE, y)).length(2.4).label(
             rref + '\n10 kΩ', fontsize=9)
         d += r
@@ -114,38 +120,39 @@ with schemdraw.Drawing(show=False) as d:
         d += elm.Line().to((X_BUS, y))
         box.append(d.add(elm.Dot().at((X_BUS, y))))
 
-        # Kontakt gegen Masse (senkrecht nach unten)
+        # contact to ground (vertical, downwards)
         sw = elm.Switch().down().at((X_NODE, y)).length(2.0).label(
-            kontakt, loc='bottom', fontsize=9)
+            contact, loc='bottom', fontsize=9)
         d += sw
         box.append(sw)
         d += elm.Line().down().length(0.7)
         box.append(d.add(elm.Ground()))
 
     # =====================================================================
-    # Modulrahmen
+    # Module outline
     # =====================================================================
     d += elm.EncircleBox(box, padx=0.9, pady=0.9).linestyle('--').color('#888')
     d += elm.Label().at((X_NODE + 2.0, Y_VCC + 1.6)).label(
-        'KY-040 (Modulplatine)', fontsize=11.5, color='#555')
+        'KY-040 (module board)', fontsize=11.5, color='#555')
 
     # =====================================================================
-    # Fussnoten
+    # Notes
     # =====================================================================
     d += elm.Label().at((2.2, Y_GND - 2.4)).label(
-        'Alle Massezeichen innerhalb des Rahmens sind der GND-Pin des Moduls;\n'
-        'Encoder-Kontakte und Taster schalten gegen diese Masse.',
+        'Every ground symbol inside the frame is the GND pin of the module;\n'
+        'the encoder contacts and the push-button switch against it.',
         fontsize=9, color='gray', halign='center')
     d += elm.Label().at((2.2, Y_GND - 4.2)).label(
-        'Bleibt der +-Pin offen, koppeln R1 und R2 die Pins CLK und DT über\n'
-        '10 kΩ + 10 kΩ = 20 kΩ zusammen. Ein Kontakt zieht dann beide Pins nach\n'
-        'unten, die Quadratur wird unlesbar und es wird nie ein Click gesendet.',
+        'If the + pin is left open, R1 and R2 connect CLK and DT through\n'
+        '10 kΩ + 10 kΩ = 20 kΩ. A single contact then pulls both pins low,\n'
+        'the quadrature becomes unreadable and no click is ever sent.',
         fontsize=9, color='#a33', halign='center')
     d += elm.Label().at((2.2, Y_GND - 6.4)).label(
-        'C1–C3 erst bestücken, wenn die Firmware Doppelsprünge zeigt (τ ≈ 100 µs).\n'
-        'Nicht jede KY-040-Variante hat einen Pullup auf SW — Firmware setzt INPUT_PULLUP.',
+        'Fit C1-C3 only if the firmware shows double steps (τ ≈ 100 µs).\n'
+        'Not every KY-040 variant has a pull-up on SW, so the firmware sets INPUT_PULLUP.',
         fontsize=9, color='gray', halign='center')
 
-d.save('docs/schaltplan.svg')
-d.save('docs/schaltplan.png', dpi=150)
-print('geschrieben: docs/schaltplan.svg + .png')
+# Opaque white background instead of the transparent default.
+d.save('docs/schaltplan.svg', transparent=False)
+d.save('docs/schaltplan.png', transparent=False, dpi=150)
+print('written: docs/schaltplan.svg + .png')
