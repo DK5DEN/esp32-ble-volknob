@@ -167,6 +167,17 @@ reliable way.
 - Turning while the phone is still establishing the connection has no effect;
   there is no wakelock.
 
+## Enclosure
+
+A round desktop puck, Ø54.2 × 20.9 mm with the default dimensions: parametric
+OpenSCAD source and exported STLs in [`case/`](case/). The KY-040 is clamped by
+its own M7 bushing nut against the top face, the ESP32-C3 slides into rails,
+and a bottom plate closes it with three M3 screws.
+
+The dimensions are nominal rather than measured from my own parts, so check
+them before printing the full case; [`case/README.md`](case/README.md) lists
+which ones matter and ships a fit-test coupon that prints in a few minutes.
+
 ## Tested with
 
 ESP32-C3 Super Mini, KY-040, Samsung Galaxy A16 (SM-A165F): 5 detents
