@@ -48,18 +48,31 @@ einen Modul-Pullup auf `SW`.
 **Antenne freihalten:** Die Antenne des Super Mini sitzt am USB-C-Ende. Die
 Encoder-Platine nicht darüber legen, das kostet BLE-Reichweite.
 
-### Steckbrett-Prototyp
+### Schaltplan
 
-![Steckbrett-Aufbauplan](docs/steckbrett.png)
+![Schaltplan](docs/schaltplan.png)
 
-Der abgebildete Prototypenaufbau nutzt eine **abweichende Belegung** —
-CLK auf GPIO0, DT auf GPIO1, SW auf GPIO3 —, damit alle drei Signale auf der
-rechten Leiste liegen und kein Draht über den Mittelkanal muss. Für diesen
-Aufbau die `PIN_*`-Defines in `src/main.cpp` entsprechend ändern.
+Gezeichnet ist auch das Innenleben der KY-040-Modulplatine: R1–R3 sind die
+Pullups **auf dem Modul**, sie hängen am `+`-Pin. Encoder-Kontakte und Taster
+schalten gegen den GND-Pin des Moduls — deshalb sind die Massezeichen
+innerhalb des gestrichelten Rahmens alle derselbe Anschluss.
 
 C1–C3 (10 nF) sind Hardware-Entprellung und optional: erst ohne aufbauen, nur
 nachrüsten, wenn die Firmware Doppelsprünge zeigt. Mit dem 10-kΩ-Modul-Pullup
-ergibt sich τ ≈ 100 µs.
+ergibt sich τ ≈ 100 µs. C4 (100 nF) blockt die Modulversorgung ab.
+
+Quelle der Zeichnung ist [`docs/schaltplan.py`](docs/schaltplan.py)
+([schemdraw](https://schemdraw.readthedocs.io/)), neu rendern mit:
+
+```bash
+python docs/schaltplan.py     # schreibt docs/schaltplan.svg + .png
+```
+
+In [`docs/steckbrett.png`](docs/steckbrett.png) liegt zusätzlich ein
+Steckbrett-Aufbauplan aus der Planungsphase. Er wurde so nicht gebaut und
+nutzt eine **abweichende Belegung** (CLK auf GPIO0, DT auf GPIO1, SW auf
+GPIO3); wer ihn verwendet, muss die `PIN_*`-Defines in `src/main.cpp`
+entsprechend ändern.
 
 ## Bauen und flashen
 
